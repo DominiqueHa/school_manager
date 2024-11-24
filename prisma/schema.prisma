@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String      @id @default(cuid())
+  name          String?
+  email         String      @unique
+  password      String
+  role          Role        @default(STUDENT)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  profile       Profile?
+  studentGrades Grade[]     @relation("StudentGrades")
+  teacherGrades Grade[]     @relation("TeacherGrades")
+  parentOf      Student[]   @relation("ParentStudent")
+  notifications Notification[]
+  messages      Message[]   @relation("ReceivedMessages")
+  sentMessages  Message[]   @relation("SentMessages")
+}
+
+model Profile {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  address   String?
+  phone     String?
+  birthDate DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Student {
+  id        String   @id @default(cuid())
+  userId    String
+  parentId  String
+  name      String
+  class     String
+  parent    User     @relation("ParentStudent", fields: [parentId], references: [id])
+  grades    Grade[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Grade {
+  id          String   @id @default(cuid())
+  value       Float    // Grade out of 20
+  subject     String
+  studentId   String
+  teacherId   String
+  comment     String?
+  student     User     @relation("StudentGrades", fields: [studentId], references: [id])
+  teacher     User     @relation("TeacherGrades", fields: [teacherId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  Student Student[]
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  fromId    String
+  toId      String
+  subject   String
+  content   String
+  read      Boolean  @default(false)
+  from      User     @relation("SentMessages", fields: [fromId], references: [id])
+  to        User     @relation("ReceivedMessages", fields: [toId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+}
